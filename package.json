@@ -16,7 +16,11 @@
     "commands": [
       {
         "command": "zugferd-viewer.previewZugferdXml",
-        "title": "Preview Zugferd XML"
+        "title": "Preview Zugferd XML from PDF"
+      },
+      {
+        "command": "zugferd-viewer.openZugferdXmlFile",
+        "title": "Preview Zugferd XML File"
       }
     ]
   },

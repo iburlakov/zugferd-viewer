@@ -1,3 +1,5 @@
+/* ===== DIN 5008 Invoice Layout ===== */
+
 * {
     margin: 0;
     padding: 0;
@@ -5,138 +7,161 @@
 }
 
 body {
-    font-family: "Segoe UI", Arial, sans-serif;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
     line-height: 1.5;
     color: var(--vscode-foreground);
     background: var(--vscode-editor-background);
-    padding: 32px 40px;
-    max-width: 800px;
+    padding: 0;
 }
 
-/* ---- ZUGFeRD badge ---- */
+/* ---- Page container (A4-like) ---- */
+.page {
+    max-width: 800px;
+    padding: 32px 40px 60px 40px;
+    position: relative;
+    min-height: 100vh;
+}
+
+/* ---- Header: company name + ZUGFeRD badge ---- */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.company-name {
+    font-size: 20px;
+    font-weight: 700;
+}
+
 .zugferd-badge {
     display: inline-flex;
-    gap: 8px;
-    margin-bottom: 16px;
-    font-size: 11px;
-    font-weight: 500;
+    gap: 6px;
+    align-items: center;
 }
 
 .zugferd-badge span {
     display: inline-block;
-    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
     background: var(--vscode-badge-background);
     color: var(--vscode-badge-foreground);
     border-radius: 3px;
     letter-spacing: 0.02em;
 }
 
-/* ---- sections ---- */
-.section {
-    margin-bottom: 24px;
-}
-
-.section-title {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--vscode-descriptionForeground);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 8px;
-}
-
-.invoice-title {
-    font-size: 20px;
-    font-weight: 600;
+/* ---- DIN 5008 address zone ---- */
+.address-zone {
     margin-bottom: 20px;
 }
 
-/* ---- meta table ---- */
-.meta-table {
-    border-collapse: collapse;
-}
-
-.meta-table td {
-    padding: 2px 0;
-    vertical-align: top;
-}
-
-.meta-table .label {
-    padding-right: 16px;
-    color: var(--vscode-descriptionForeground);
-    white-space: nowrap;
-}
-
-/* ---- parties (seller / buyer) ---- */
-.parties {
-    display: flex;
-    gap: 40px;
-}
-
-.party {
-    flex: 1;
-}
-
-.party-heading {
+.sender-return-line {
     font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     color: var(--vscode-descriptionForeground);
-    margin-bottom: 6px;
+    border-bottom: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.3));
+    padding-bottom: 3px;
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
 }
 
-.party-name {
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.party-address {
+.recipient-address {
+    font-size: 14px;
     line-height: 1.6;
+    min-height: 80px;
 }
 
-.party-ids {
-    margin-top: 6px;
-    font-size: 12px;
-    color: var(--vscode-descriptionForeground);
+.recipient-name {
+    font-weight: 600;
 }
 
-/* ---- line items ---- */
-.line-items {
-    width: 100%;
-    border-collapse: collapse;
+/* ---- Invoice title + meta row ---- */
+.title-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
 }
 
-.line-items th {
-    text-align: left;
-    font-weight: normal;
-    color: var(--vscode-descriptionForeground);
-    border-bottom: 1px solid var(--vscode-widget-border, #ccc);
-    padding: 6px 8px;
-    font-size: 12px;
+.invoice-title {
+    font-size: 22px;
+    font-weight: 700;
 }
 
-.line-items th.right {
+.invoice-meta {
     text-align: right;
 }
 
-.line-items td {
+.invoice-meta table {
+    margin-left: auto;
+    border-collapse: collapse;
+}
+
+.invoice-meta td {
+    padding: 2px 0;
+    font-size: 12px;
+}
+
+.invoice-meta td:first-child {
+    padding-right: 14px;
+    color: var(--vscode-descriptionForeground);
+    text-align: right;
+}
+
+.invoice-meta td:last-child {
+    text-align: right;
+    font-weight: 500;
+}
+
+/* ---- Line items table ---- */
+.line-items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+}
+
+.line-items thead th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--vscode-descriptionForeground);
     padding: 6px 8px;
-    border-bottom: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.2));
+    border-bottom: 2px solid var(--vscode-foreground);
+}
+
+.line-items thead th.right {
+    text-align: right;
+}
+
+.line-items tbody td {
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.15));
     vertical-align: top;
 }
 
-.line-items td.right {
+.line-items tbody td.right {
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
 
-/* ---- totals ---- */
+.line-items tbody tr:last-child td {
+    border-bottom: 2px solid var(--vscode-foreground);
+}
+
+/* ---- Totals ---- */
+.totals-section {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 24px;
+}
+
 .totals-table {
     border-collapse: collapse;
-    margin-left: auto;
-    min-width: 280px;
+    min-width: 240px;
 }
 
 .totals-table td {
@@ -144,7 +169,7 @@ body {
 }
 
 .totals-table td:first-child {
-    padding-right: 24px;
+    padding-right: 20px;
     color: var(--vscode-descriptionForeground);
 }
 
@@ -153,13 +178,28 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
-.totals-table .gross {
-    border-top: 1px solid var(--vscode-widget-border, #ccc);
+.totals-table .gross-row td {
+    border-top: 2px solid var(--vscode-foreground);
     padding-top: 6px;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 16px;
 }
 
-/* ---- tax breakdown ---- */
+/* ---- Sections (tax breakdown, etc.) ---- */
+.section {
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--vscode-descriptionForeground);
+    margin-bottom: 6px;
+}
+
+/* ---- Tax breakdown ---- */
 .tax-breakdown {
     border-collapse: collapse;
     font-size: 12px;
@@ -170,7 +210,7 @@ body {
     font-weight: normal;
     color: var(--vscode-descriptionForeground);
     padding: 4px 16px 4px 0;
-    border-bottom: 1px solid var(--vscode-widget-border, #ccc);
+    border-bottom: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.3));
 }
 
 .tax-breakdown th.right {
@@ -186,9 +226,59 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
-/* ---- notes ---- */
+/* ---- Footer sections (payment / terms / contact) ---- */
+.footer-sections {
+    display: flex;
+    gap: 32px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.2));
+}
+
+.footer-block {
+    flex: 1;
+}
+
+.footer-block-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--vscode-descriptionForeground);
+    margin-bottom: 4px;
+}
+
+.footer-block p {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--vscode-descriptionForeground);
+}
+
+/* ---- Notes ---- */
+.notes-section {
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.2));
+}
+
 .notes {
     font-size: 12px;
     color: var(--vscode-descriptionForeground);
     white-space: pre-wrap;
+    line-height: 1.6;
+}
+
+/* ---- Page footer strip ---- */
+.page-footer {
+    position: absolute;
+    bottom: 16px;
+    left: 40px;
+    right: 40px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground);
+    border-top: 1px solid var(--vscode-widget-border, rgba(128,128,128,0.2));
+    padding-top: 6px;
+    opacity: 0.7;
 }

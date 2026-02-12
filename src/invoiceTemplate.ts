@@ -69,59 +69,71 @@ function escapeHtml(text: string): string {
         .replace(/"/g, '&quot;');
 }
 
-function formatAddress(addr: InvoiceAddress): string {
-    return [
-        escapeHtml(addr.name),
-        escapeHtml(addr.street),
-        `${escapeHtml(addr.postalCode)} ${escapeHtml(addr.city)}`,
-        escapeHtml(addr.country),
-    ].join('<br>');
+function formatAddressLines(addr: InvoiceAddress): string {
+    return [addr.street, `${addr.postalCode} ${addr.city}`, addr.country]
+        .filter(Boolean)
+        .map(l => escapeHtml(l))
+        .join('<br>');
 }
 
-function optionalRow(label: string, value: string | undefined): string {
+function metaRow(label: string, value: string | undefined): string {
     if (!value) { return ''; }
-    return `<tr><td class="label">${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`;
+    return `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`;
 }
 
 export function renderInvoiceHtml(data: InvoiceData, cssUri: string): string {
+    // --- Line item rows ---
     const lineItemRows = data.lineItems
         .map(item => `
-            <tr>
-                <td class="right">${escapeHtml(item.position)}</td>
-                <td>${escapeHtml(item.description)}</td>
-                <td class="right">${escapeHtml(item.quantity)}</td>
-                <td>${escapeHtml(item.unit)}</td>
-                <td class="right">${escapeHtml(item.unitPrice)}</td>
-                <td class="right">${escapeHtml(item.taxRate)}</td>
-                <td class="right">${escapeHtml(item.total)}</td>
-            </tr>`)
+                <tr>
+                    <td class="right">${escapeHtml(item.position)}</td>
+                    <td>${escapeHtml(item.description)}</td>
+                    <td class="right">${escapeHtml(item.quantity)}</td>
+                    <td>${escapeHtml(item.unit)}</td>
+                    <td class="right">${escapeHtml(item.unitPrice)}</td>
+                    <td class="right">${escapeHtml(item.taxRate)}</td>
+                    <td class="right">${escapeHtml(item.total)}</td>
+                </tr>`)
         .join('');
 
+    // --- Tax breakdown rows ---
     const taxBreakdownRows = (data.taxBreakdown ?? [])
         .map(t => `
-            <tr>
-                <td>${escapeHtml(t.rate)}</td>
-                <td class="right">${escapeHtml(t.basis)}</td>
-                <td class="right">${escapeHtml(t.amount)}</td>
-            </tr>`)
+                <tr>
+                    <td>${escapeHtml(t.rate)}</td>
+                    <td class="right">${escapeHtml(t.basis)} ${escapeHtml(data.currency)}</td>
+                    <td class="right">${escapeHtml(t.amount)} ${escapeHtml(data.currency)}</td>
+                </tr>`)
         .join('');
 
-    const sellerIds: string[] = [];
-    if (data.sellerTaxId) { sellerIds.push(`Fiscal code: ${escapeHtml(data.sellerTaxId)}`); }
-    if (data.sellerVatId) { sellerIds.push(`VAT ID: ${escapeHtml(data.sellerVatId)}`); }
+    // --- Seller return line (compact one-liner for DIN 5008 window) ---
+    const sellerReturnParts = [
+        data.seller.name,
+        data.seller.street,
+        `${data.seller.postalCode} ${data.seller.city}`,
+        data.seller.country,
+    ].filter(Boolean).map(s => escapeHtml(s));
+    const sellerReturnLine = sellerReturnParts.join(' &middot; ');
 
-    const contactRows: string[] = [];
-    if (data.sellerContact) { contactRows.push(optionalRow('Contact', data.sellerContact)); }
-    if (data.sellerPhone) { contactRows.push(optionalRow('Phone', data.sellerPhone)); }
-    if (data.sellerEmail) { contactRows.push(optionalRow('Email', data.sellerEmail)); }
+    // --- Seller IDs for page footer ---
+    const sellerIdParts: string[] = [];
+    if (data.sellerVatId) { sellerIdParts.push(`VAT ID: ${escapeHtml(data.sellerVatId)}`); }
+    if (data.sellerTaxId) { sellerIdParts.push(`Fiscal code: ${escapeHtml(data.sellerTaxId)}`); }
 
-    const paymentRows: string[] = [];
-    if (data.paymentTerms) { paymentRows.push(optionalRow('Payment terms', data.paymentTerms)); }
-    if (data.paymentMeansType) { paymentRows.push(optionalRow('Payment method', data.paymentMeansType)); }
-    if (data.bankName) { paymentRows.push(optionalRow('Bank', data.bankName)); }
-    if (data.iban) { paymentRows.push(optionalRow('IBAN', data.iban)); }
-    if (data.bic) { paymentRows.push(optionalRow('BIC', data.bic)); }
-    if (data.paymentReference) { paymentRows.push(optionalRow('Payment reference', data.paymentReference)); }
+    // --- Footer blocks ---
+    const paymentLines: string[] = [];
+    if (data.iban) { paymentLines.push(`IBAN: ${escapeHtml(data.iban)}`); }
+    if (data.bic) { paymentLines.push(`BIC: ${escapeHtml(data.bic)}`); }
+    if (data.bankName) { paymentLines.push(escapeHtml(data.bankName)); }
+    if (data.paymentMeansType) { paymentLines.push(escapeHtml(data.paymentMeansType)); }
+    if (data.paymentReference) { paymentLines.push(`Ref: ${escapeHtml(data.paymentReference)}`); }
+
+    const contactLines: string[] = [];
+    if (data.sellerContact) { contactLines.push(escapeHtml(data.sellerContact)); }
+    if (data.sellerEmail) { contactLines.push(escapeHtml(data.sellerEmail)); }
+    if (data.sellerPhone) { contactLines.push(escapeHtml(data.sellerPhone)); }
+
+    const hasFooter = paymentLines.length > 0 || data.paymentTerms || contactLines.length > 0;
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -132,79 +144,75 @@ export function renderInvoiceHtml(data: InvoiceData, cssUri: string): string {
     <link rel="stylesheet" href="${cssUri}">
 </head>
 <body>
-    ${data.zugferdVersion || data.zugferdProfile ? `
-    <!-- ZUGFeRD metadata -->
-    <div class="zugferd-badge">
-        ${data.zugferdVersion ? `<span>ZUGFeRD ${escapeHtml(data.zugferdVersion)}</span>` : ''}
-        ${data.zugferdProfile ? `<span>${escapeHtml(data.zugferdProfile)}</span>` : ''}
+<div class="page">
+    <!-- Header -->
+    <div class="header">
+        <div>
+            <div class="company-name">${escapeHtml(data.seller.name)}</div>
+        </div>
+        ${data.zugferdVersion || data.zugferdProfile ? `
+        <div class="zugferd-badge">
+            ${data.zugferdVersion ? `<span>ZUGFeRD ${escapeHtml(data.zugferdVersion)}</span>` : ''}
+            ${data.zugferdProfile ? `<span>${escapeHtml(data.zugferdProfile)}</span>` : ''}
+        </div>
+        ` : ''}
     </div>
-    ` : ''}
 
-    <div class="invoice-title">Invoice</div>
-
-    <!-- invoice meta -->
-    <section class="section">
-        <table class="meta-table">
-            <tr><td class="label">Invoice no.</td><td>${escapeHtml(data.invoiceNumber)}</td></tr>
-            <tr><td class="label">Date</td><td>${escapeHtml(data.invoiceDate)}</td></tr>
-            ${optionalRow('Due date', data.dueDate)}
-            ${optionalRow('Delivery date', data.deliveryDate)}
-            ${optionalRow('Order ref.', data.orderReference)}
-            ${optionalRow('Buyer ref.', data.buyerReference)}
-            <tr><td class="label">Currency</td><td>${escapeHtml(data.currency)}</td></tr>
-        </table>
-    </section>
-
-    <!-- seller / buyer -->
-    <section class="section parties">
-        <div class="party">
-            <div class="party-heading">From</div>
-            <div class="party-name">${escapeHtml(data.seller.name)}</div>
-            <div class="party-address">${formatAddress(data.seller)}</div>
-            ${sellerIds.length > 0 ? `<div class="party-ids">${sellerIds.join('<br>')}</div>` : ''}
+    <!-- DIN 5008 address zone -->
+    <div class="address-zone">
+        <div class="sender-return-line">${sellerReturnLine}</div>
+        <div class="recipient-address">
+            <div class="recipient-name">${escapeHtml(data.buyer.name)}</div>
+            ${formatAddressLines(data.buyer)}
         </div>
+    </div>
 
-        <div class="party">
-            <div class="party-heading">To</div>
-            <div class="party-name">${escapeHtml(data.buyer.name)}</div>
-            <div class="party-address">${formatAddress(data.buyer)}</div>
-            ${data.buyerVatId ? `<div class="party-ids">VAT ID: ${escapeHtml(data.buyerVatId)}</div>` : ''}
+    <!-- Invoice title + meta -->
+    <div class="title-meta-row">
+        <div class="invoice-title">Invoice</div>
+        <div class="invoice-meta">
+            <table>
+                <tr><td>Invoice no.</td><td>${escapeHtml(data.invoiceNumber)}</td></tr>
+                <tr><td>Date</td><td>${escapeHtml(data.invoiceDate)}</td></tr>
+                ${metaRow('Due date', data.dueDate)}
+                ${metaRow('Delivery date', data.deliveryDate)}
+                ${metaRow('Order ref.', data.orderReference)}
+                ${metaRow('Buyer ref.', data.buyerReference)}
+                <tr><td>Currency</td><td>${escapeHtml(data.currency)}</td></tr>
+            </table>
         </div>
-    </section>
+    </div>
 
-    <!-- line items -->
-    <section class="section">
-        <div class="section-title">Line items</div>
-        <table class="line-items">
-            <thead>
-                <tr>
-                    <th class="right">Pos.</th>
-                    <th>Description</th>
-                    <th class="right">Qty</th>
-                    <th>Unit</th>
-                    <th class="right">Unit price</th>
-                    <th class="right">Tax %</th>
-                    <th class="right">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${lineItemRows}
-            </tbody>
-        </table>
-    </section>
+    <!-- Line items -->
+    <table class="line-items">
+        <thead>
+            <tr>
+                <th class="right" style="width:40px">Pos.</th>
+                <th>Description</th>
+                <th class="right" style="width:60px">Qty</th>
+                <th style="width:40px">Unit</th>
+                <th class="right" style="width:80px">Unit price</th>
+                <th class="right" style="width:55px">Tax</th>
+                <th class="right" style="width:90px">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${lineItemRows}
+        </tbody>
+    </table>
 
-    <!-- totals -->
-    <section class="section">
+    <!-- Totals -->
+    <div class="totals-section">
         <table class="totals-table">
             <tr><td>Net total</td><td>${escapeHtml(data.totalNet)} ${escapeHtml(data.currency)}</td></tr>
             <tr><td>Tax</td><td>${escapeHtml(data.totalTax)} ${escapeHtml(data.currency)}</td></tr>
-            <tr class="gross"><td class="gross">Total</td><td class="gross">${escapeHtml(data.totalGross)} ${escapeHtml(data.currency)}</td></tr>
+            <tr class="gross-row"><td>Total</td><td>${escapeHtml(data.totalGross)} ${escapeHtml(data.currency)}</td></tr>
         </table>
-    </section>
+    </div>
 
     ${taxBreakdownRows ? `
-    <!-- tax breakdown -->
-    <section class="section">
+    <!-- Tax breakdown -->
+    <div class="section">
         <div class="section-title">Tax breakdown</div>
         <table class="tax-breakdown">
             <thead>
@@ -218,36 +226,48 @@ export function renderInvoiceHtml(data: InvoiceData, cssUri: string): string {
                 ${taxBreakdownRows}
             </tbody>
         </table>
-    </section>
+    </div>
     ` : ''}
 
-    ${paymentRows.length > 0 ? `
-    <!-- payment details -->
-    <section class="section">
-        <div class="section-title">Payment details</div>
-        <table class="meta-table">
-            ${paymentRows.join('')}
-        </table>
-    </section>
-    ` : ''}
+    ${hasFooter ? `
+    <!-- Footer sections -->
+    <div class="footer-sections">
+        ${paymentLines.length > 0 ? `
+        <div class="footer-block">
+            <div class="footer-block-title">Payment details</div>
+            <p>${paymentLines.join('<br>')}</p>
+        </div>
+        ` : ''}
 
-    ${contactRows.length > 0 ? `
-    <!-- seller contact -->
-    <section class="section">
-        <div class="section-title">Contact</div>
-        <table class="meta-table">
-            ${contactRows.join('')}
-        </table>
-    </section>
+        ${data.paymentTerms ? `
+        <div class="footer-block">
+            <div class="footer-block-title">Payment terms</div>
+            <p>${escapeHtml(data.paymentTerms)}</p>
+        </div>
+        ` : ''}
+
+        ${contactLines.length > 0 ? `
+        <div class="footer-block">
+            <div class="footer-block-title">Contact</div>
+            <p>${contactLines.join('<br>')}</p>
+        </div>
+        ` : ''}
+    </div>
     ` : ''}
 
     ${data.notes ? `
-    <!-- notes -->
-    <section class="section">
+    <div class="notes-section">
         <div class="section-title">Notes</div>
         <div class="notes">${escapeHtml(data.notes)}</div>
-    </section>
+    </div>
     ` : ''}
+
+    <!-- Page footer -->
+    <div class="page-footer">
+        <span>${escapeHtml(data.seller.name)}</span>
+        ${sellerIdParts.length > 0 ? `<span>${sellerIdParts.join(' &middot; ')}</span>` : ''}
+    </div>
+</div>
 </body>
 </html>`;
 }
