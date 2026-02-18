@@ -7,3 +7,6 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [Unreleased]
 
 - Initial release
+- Preview ZUGFeRD invoice data in a formatted webview panel
+- Extract and preview embedded ZUGFeRD XML from PDF/A files
+- Preview standalone ZUGFeRD XML files from the workspace

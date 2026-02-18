@@ -4,6 +4,11 @@
   "displayName": "Zugferd Viewer",
   "description": "A viewer for Zugferd Xml invoices",
   "version": "0.0.1",
+  "icon": "images/vscode-extension-icon.png",
+  "galleryBanner": {
+    "color": "#C80000",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.108.x"
   },
